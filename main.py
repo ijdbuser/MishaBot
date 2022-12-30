@@ -1,8 +1,9 @@
 import asyncio
+from asyncio import sleep
 
 import discord
 from decouple import config
-from discord import Message
+from discord import Message, ClientException
 
 TOKEN = config("BOT_TOKEN")
 
@@ -22,27 +23,28 @@ async def on_member_join(member):
         f'Welcome to the rice fields, {member.name},!'
     )
 
+
+
 @client.event
 async def on_message(message: Message):
-    sussy_words = ['sus', 'cac', 'сус', 'сассать']
+    sussy_words = ['sus', 'сас', 'сус', 'сассать']
 
-    guild = message.guild
-    print(message.content, sussy_words)
     if any(ext in message.content for ext in sussy_words):
         await message.channel.send("❗❗❗❗ SUSSY ALERT ❗❗❗❗")
 
-        v_channel = await guild.create_voice_channel(f"Sussy jail ")
-        await message.author.move_to(v_channel)
+        if message.author.voice.channel is None:
+            return
 
-        vc = await v_channel.connect(self_mute=True, timeout=5)
+        v_channel = message.author.voice.channel
 
-        player = vc.create_ffmpeg_player('sus.mp3', after=lambda: print('done'))
+        vc = await v_channel.connect(self_mute=False, self_deaf=True, timeout=5)
 
-        player.start()
-        while not player.is_done():
-            await asyncio.sleep(1)
-        # disconnect after the player has finished
-        player.stop()
+        audio = discord.FFmpegPCMAudio("sus.mp3", executable="C:\\ffmpeg\\bin\\ffmpeg.exe")
+        vc.play(audio)
+
+        while vc.is_playing():
+            await sleep(.1)
+
         await vc.disconnect()
 
     elif message.content == 'raise-exception':
@@ -55,6 +57,8 @@ async def on_error(event, *args, **kwargs):
             f.write(f'Unhandled message: {args[0]}\n')
         else:
             raise
+
+
 
 
 if __name__ == "__main__":
