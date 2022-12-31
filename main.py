@@ -1,9 +1,11 @@
 import asyncio
+import io
 from asyncio import sleep
 
 import discord
 from decouple import config
-from discord import Message, ClientException
+from discord import Message, ClientException, Member, VoiceState, VoiceChannel
+from gtts import gTTS
 
 TOKEN = config("BOT_TOKEN")
 
@@ -24,6 +26,18 @@ async def on_member_join(member):
     )
 
 
+async def play_audio(v_channel, file: str | bytes):
+    vc = await v_channel.connect(self_mute=False, self_deaf=True, timeout=5)
+    audio = discord.FFmpegPCMAudio(file,
+                                   executable="C:\\ffmpeg\\bin\\ffmpeg.exe",
+                                   pipe=file is bytes)
+    vc.play(audio)
+
+    while vc.is_playing():
+        await sleep(.1)
+
+    await vc.disconnect()
+
 
 @client.event
 async def on_message(message: Message):
@@ -35,20 +49,40 @@ async def on_message(message: Message):
         if message.author.voice.channel is None:
             return
 
-        v_channel = message.author.voice.channel
-
-        vc = await v_channel.connect(self_mute=False, self_deaf=True, timeout=5)
-
-        audio = discord.FFmpegPCMAudio("sus.mp3", executable="C:\\ffmpeg\\bin\\ffmpeg.exe")
-        vc.play(audio)
-
-        while vc.is_playing():
-            await sleep(.1)
-
-        await vc.disconnect()
+        await play_audio(message.author.voice.channel, "sounds/sus.mp3")
 
     elif message.content == 'raise-exception':
         raise discord.DiscordException
+
+
+@client.event
+async def on_voice_state_update(member: Member, before: VoiceState, after: VoiceState):
+    if member.name == "MishaBot":
+        return
+
+    if after.channel is not None and not after.mute and before.channel is None:
+        myobj = gTTS(text=f"Импостер {member.display_name} залетел в {after.channel.name}!", lang='ru', slow=True)
+        myobj.save("kekw.mp3")
+        await play_audio(after.channel, "kekw.mp3")
+        await play_audio(after.channel, "sounds/join.mp3")
+    elif not before.self_deaf and after.self_deaf:
+        myobj = gTTS(text=f"{member.display_name} нихуя не слышит!", lang='ru', slow=True)
+        myobj.save("kekw.mp3")
+        await play_audio(after.channel, "kekw.mp3")
+    elif before.self_deaf and not after.self_deaf:
+        myobj = gTTS(text=f"{member.display_name}; пока тебя не было, твою мать выебали!", lang='ru', slow=True)
+        myobj.save("kekw.mp3")
+        await play_audio(after.channel, "kekw.mp3")
+
+    elif not before.self_mute and after.self_mute:
+        myobj = gTTS(text=f"{member.display_name} - хули ты замютился, дибил ебаный?", lang='ru', slow=True)
+        myobj.save("kekw.mp3")
+        await play_audio(after.channel, "kekw.mp3")
+    elif before.self_mute and not after.self_mute:
+        myobj = gTTS(text=f"{member.display_name} - бичара вернулся!", lang='ru', slow=True)
+        myobj.save("kekw.mp3")
+        await play_audio(after.channel, "kekw.mp3")
+
 
 @client.event
 async def on_error(event, *args, **kwargs):
@@ -57,8 +91,6 @@ async def on_error(event, *args, **kwargs):
             f.write(f'Unhandled message: {args[0]}\n')
         else:
             raise
-
-
 
 
 if __name__ == "__main__":
