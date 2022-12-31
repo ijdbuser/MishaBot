@@ -2,3 +2,4 @@ discord
 python-decouple
 pynacl
 gTTS
+pillow
