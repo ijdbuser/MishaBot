@@ -38,7 +38,12 @@ async def on_member_join(member):
 async def play_audio(v_channel, file: str | bytes):
     vc = await v_channel.connect(self_mute=False, self_deaf=True, timeout=5)
 
-    audio = discord.FFmpegPCMAudio(file, executable=FFMPEG_PATH, pipe=file is bytes)
+    audio = discord.FFmpegPCMAudio(
+        file,
+        executable=FFMPEG_PATH,
+        options='-filter:a "atempo=1.5"',
+        pipe=file is bytes,
+    )
     vc.play(audio)
 
     while vc.is_playing():
